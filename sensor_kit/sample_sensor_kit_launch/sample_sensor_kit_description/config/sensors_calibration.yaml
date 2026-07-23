@@ -6,10 +6,60 @@ base_link:
     roll: -0.001
     pitch: 0.015
     yaw: -0.0364
-  velodyne_rear_base_link:
-    x: -0.358
+  # JT128 mid-range perimeter ring, mounted at bumper height, yawed outward
+  jt128_front_base_link:
+    x: 3.79
     y: 0.0
-    z: 1.631
-    roll: -0.02
-    pitch: 0.7281317
+    z: 0.5
+    roll: 0.0
+    pitch: 0.0
+    yaw: 0.0
+  jt128_front_left_base_link:
+    x: 3.5
+    y: 0.9
+    z: 0.5
+    roll: 0.0
+    pitch: 0.0
+    yaw: 0.785398
+  jt128_front_right_base_link:
+    x: 3.5
+    y: -0.9
+    z: 0.5
+    roll: 0.0
+    pitch: 0.0
+    yaw: -0.785398
+  jt128_left_base_link:
+    x: 1.0
+    y: 0.95
+    z: 0.5
+    roll: 0.0
+    pitch: 0.0
+    yaw: 1.575
+  jt128_right_base_link:
+    x: 1.0
+    y: -0.95
+    z: 0.5
+    roll: 0.0
+    pitch: 0.0
+    yaw: -1.575
+  jt128_rear_left_base_link:
+    x: -0.8
+    y: 0.9
+    z: 0.5
+    roll: 0.0
+    pitch: 0.0
+    yaw: 2.356194
+  jt128_rear_right_base_link:
+    x: -0.8
+    y: -0.9
+    z: 0.5
+    roll: 0.0
+    pitch: 0.0
+    yaw: -2.356194
+  jt128_rear_base_link:
+    x: -1.1
+    y: 0.0
+    z: 0.5
+    roll: 0.0
+    pitch: 0.0
     yaw: 3.141592
