@@ -97,14 +97,34 @@ def launch_setup(context, *args, **kwargs):
 
     nodes = []
 
+    # nebula v1.1.0 declares a large, statically-typed parameter set (multicast_ip,
+    # ptp_profile/domain/transport_type/switch_type/lock_threshold, diag_span,
+    # sync_angle, cut_angle, udp_socket_receive_buffer_size_bytes, retry_hw, and
+    # per-model extras like hires_mode) that must ALL be initialized at construction.
+    # Rather than duplicate that list inline (it drifts per nebula version and differs
+    # per model - e.g. PandarQT128 has no hires_mode and different PTP defaults than
+    # Pandar128E4X), load nebula's own per-model param file as the base and override
+    # only the instance-specific values below. This stays coherent with whatever
+    # nebula version is pinned in autoware.repos.
+    nebula_config_file = PathJoinSubstitution(
+        [
+            FindPackageShare("nebula_" + sensor_make.lower()),
+            "config",
+            sensor_model + ".param.yaml",
+        ]
+    )
+    nebula_base_params = ParameterFile(param_file=nebula_config_file, allow_substs=True)
+
     nodes.append(
         ComposableNode(
             package="nebula_" + sensor_make.lower(),
             plugin=sensor_make + "RosWrapper",
             name=sensor_make.lower() + "_ros_wrapper_node",
             parameters=[
+                nebula_base_params,
                 {
                     "calibration_file": sensor_calib_fp,
+                    "calibration_download_enabled": False,
                     "sensor_model": sensor_model,
                     "launch_hw": LaunchConfiguration("launch_driver"),
                     **create_parameter_dict(
@@ -116,7 +136,6 @@ def launch_setup(context, *args, **kwargs):
                         "min_range",
                         "max_range",
                         "frame_id",
-                        "scan_phase",
                         "cloud_min_angle",
                         "cloud_max_angle",
                         "dual_return_distance_threshold",
