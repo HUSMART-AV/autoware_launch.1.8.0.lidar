@@ -127,12 +127,16 @@ def launch_setup(context, *args, **kwargs):
                     "calibration_download_enabled": False,
                     "sensor_model": sensor_model,
                     "launch_hw": LaunchConfiguration("launch_driver"),
+                    # NOTE: return_mode is intentionally NOT overridden here - each
+                    # nebula model only accepts specific echo modes (Pandar128E4X ->
+                    # "Dual", PandarQT128 -> "LastStrongest"), so we let the per-model
+                    # param yaml provide the valid value. Overriding it with a generic
+                    # "SingleStrongest" triggers "Invalid echo model provided".
                     **create_parameter_dict(
                         "host_ip",
                         "sensor_ip",
                         "data_port",
                         "gnss_port",
-                        "return_mode",
                         "min_range",
                         "max_range",
                         "frame_id",
