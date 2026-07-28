@@ -20,7 +20,7 @@ from launch.conditions import IfCondition
 from launch.conditions import UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import PathJoinSubstitution
-from launch_ros.actions import ComposableNodeContainer
+from launch_ros.actions import LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
 from launch_ros.parameter_descriptions import ParameterFile
 from launch_ros.substitutions import FindPackageShare
@@ -244,17 +244,18 @@ def launch_setup(context, *args, **kwargs):
         )
     )
 
-    # set container to run all required components in the same process
-    container = ComposableNodeContainer(
-        name=LaunchConfiguration("container_name"),
-        namespace="pointcloud_preprocessor",
-        package="rclcpp_components",
-        executable=LaunchConfiguration("container_executable"),
+    # Load this lidar's components into the SHARED pointcloud container instead of
+    # creating a container per lidar. With 9 lidars, 9 separate component_container_mt
+    # processes race and segfault (SIGSEGV) on concurrent startup. Loading into one shared
+    # container (created in lidar.launch.xml, passed as an absolute name via container_name)
+    # serializes the loads and is the standard Autoware pattern - it matches how the
+    # concatenate node is loaded in pointcloud_preprocessor.launch.py.
+    loader = LoadComposableNodes(
         composable_node_descriptions=nodes,
-        output="both",
+        target_container=LaunchConfiguration("container_name"),
     )
 
-    return [container]
+    return [loader]
 
 
 def generate_launch_description():
