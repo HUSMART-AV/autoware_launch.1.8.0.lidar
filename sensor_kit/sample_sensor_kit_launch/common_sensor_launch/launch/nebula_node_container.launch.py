@@ -115,7 +115,12 @@ def launch_setup(context, *args, **kwargs):
     )
     nebula_base_params = ParameterFile(param_file=nebula_config_file, allow_substs=True)
 
-    nodes.append(
+    # Only instantiate the nebula hardware driver when launch_driver is true. In
+    # simulation (AWSIM / e2e, launch_driver:=false) the simulator publishes
+    # pointcloud_raw_ex directly, so the driver isn't needed - and instantiating idle
+    # HesaiRosWrapper(launch_hw=false) nodes crashes the shared pointcloud container.
+    driver_nodes = []
+    driver_nodes.append(
         ComposableNode(
             package="nebula_" + sensor_make.lower(),
             plugin=sensor_make + "RosWrapper",
@@ -160,6 +165,8 @@ def launch_setup(context, *args, **kwargs):
             extra_arguments=[{"use_intra_process_comms": LaunchConfiguration("use_intra_process")}],
         )
     )
+    if LaunchConfiguration("launch_driver").perform(context).lower() == "true":
+        nodes += driver_nodes
 
     cropbox_parameters = create_parameter_dict("input_frame", "output_frame")
     cropbox_parameters["negative"] = True
