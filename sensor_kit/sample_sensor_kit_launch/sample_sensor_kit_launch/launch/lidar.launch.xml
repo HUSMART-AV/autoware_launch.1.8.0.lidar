@@ -9,11 +9,13 @@
   <group>
     <push-ros-namespace namespace="lidar"/>
 
-    <!-- Single shared container for all 9 lidars' preprocessing + concatenation.
-         9 separate per-lidar containers segfault (SIGSEGV) on concurrent startup;
-         one shared container serializes the component loads. Referenced below by its
-         absolute name /sensing/lidar/pointcloud_container. -->
-    <node pkg="rclcpp_components" exec="component_container_mt" name="pointcloud_container" output="screen"/>
+    <!-- Single shared container for all 9 lidars' preprocessing + concatenation,
+         referenced below by its absolute name /sensing/lidar/pointcloud_container.
+         Uses SINGLE-THREADED component_container (not _mt): loading 9x5 components
+         concurrently into an _mt container races in pluginlib/class_loader and
+         segfaults (SIGSEGV during component instantiation). Single-threaded serializes
+         the loads and eliminates the race. -->
+    <node pkg="rclcpp_components" exec="component_container" name="pointcloud_container" output="screen"/>
 
     <!-- OT128: Hesai 128-channel long-range, roof-mounted (instrumented range 0.3-230m) -->
     <group>
