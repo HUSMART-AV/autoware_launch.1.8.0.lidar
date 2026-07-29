@@ -216,20 +216,35 @@ def launch_setup(context, *args, **kwargs):
         )
     )
 
-    nodes.append(
-        ComposableNode(
-            package="autoware_pointcloud_preprocessor",
-            plugin="autoware::pointcloud_preprocessor::DistortionCorrectorComponent",
-            name="distortion_corrector_node",
-            remappings=[
-                ("~/input/twist", "/sensing/vehicle_velocity_converter/twist_with_covariance"),
-                ("~/input/imu", "/sensing/imu/imu_data"),
-                ("~/input/pointcloud", "mirror_cropped/pointcloud_ex"),
-                ("~/output/pointcloud", "rectified/pointcloud_ex"),
-            ],
-            parameters=[distortion_corrector_node_param],
-            extra_arguments=[{"use_intra_process_comms": LaunchConfiguration("use_intra_process")}],
+    # The distortion corrector segfaults on AWSIM's misaligned twist/IMU timestamps
+    # ("Twist/IMU time_stamp is too late. Could not interpolate." -> SIGSEGV). It's optional
+    # ego-motion compensation, and AWSIM's simulated lidar has negligible scan distortion, so
+    # it's disabled by default here. Set use_distortion_corrector:=true for real hardware,
+    # where twist/IMU are time-aligned with the scan.
+    use_distortion_corrector = (
+        LaunchConfiguration("use_distortion_corrector").perform(context).lower() == "true"
+    )
+    if use_distortion_corrector:
+        nodes.append(
+            ComposableNode(
+                package="autoware_pointcloud_preprocessor",
+                plugin="autoware::pointcloud_preprocessor::DistortionCorrectorComponent",
+                name="distortion_corrector_node",
+                remappings=[
+                    ("~/input/twist", "/sensing/vehicle_velocity_converter/twist_with_covariance"),
+                    ("~/input/imu", "/sensing/imu/imu_data"),
+                    ("~/input/pointcloud", "mirror_cropped/pointcloud_ex"),
+                    ("~/output/pointcloud", "rectified/pointcloud_ex"),
+                ],
+                parameters=[distortion_corrector_node_param],
+                extra_arguments=[
+                    {"use_intra_process_comms": LaunchConfiguration("use_intra_process")}
+                ],
+            )
         )
+    # Ring filter input is the distortion output when enabled, else the mirror-crop output.
+    ring_outlier_input = (
+        "rectified/pointcloud_ex" if use_distortion_corrector else "mirror_cropped/pointcloud_ex"
     )
 
     # Ring Outlier Filter is the last component in the pipeline, so control the output frame here
@@ -243,7 +258,7 @@ def launch_setup(context, *args, **kwargs):
             plugin="autoware::pointcloud_preprocessor::RingOutlierFilterComponent",
             name="ring_outlier_filter",
             remappings=[
-                ("input", "rectified/pointcloud_ex"),
+                ("input", ring_outlier_input),
                 ("output", "pointcloud_before_sync"),
             ],
             parameters=[ring_outlier_filter_node_param, ring_outlier_output_frame],
@@ -298,6 +313,11 @@ def generate_launch_description():
     add_launch_arg("use_intra_process", "False", "use ROS 2 component container communication")
     add_launch_arg("lidar_container_name", "nebula_node_container")
     add_launch_arg("output_as_sensor_frame", "True", "output final pointcloud in sensor frame")
+    add_launch_arg(
+        "use_distortion_corrector",
+        "false",
+        "run the distortion corrector (needs time-aligned twist/IMU; crashes on AWSIM data)",
+    )
     add_launch_arg(
         "vehicle_mirror_param_file", description="path to the file of vehicle mirror position yaml"
     )
